@@ -25,7 +25,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     perception_system_dir = get_package_share_directory('perception_system')
-    yolo_dir = get_package_share_directory('yolov8_bringup')
+    yolo_dir = get_package_share_directory('yolo_bringup')
 
     model = LaunchConfiguration('model')
     model_arg = DeclareLaunchArgument(
@@ -49,6 +49,10 @@ def generate_launch_description():
     debug = LaunchConfiguration('debug')
     debug_arg = DeclareLaunchArgument(
         'debug', default_value='True', description='Debug mode')
+    
+    use_3d = LaunchConfiguration('use_3d')
+    use_3d_arg = DeclareLaunchArgument(
+        'use_3d', default_value='True', description='Use 3D detection')
 
     input_image_topic = LaunchConfiguration('input_image_topic')
     input_image_topic_arg = DeclareLaunchArgument(
@@ -80,12 +84,13 @@ def generate_launch_description():
         default_value="0.5",
         description="Minimum probability of a detection to be published")
 
-    yolo3d_launch = os.path.join(yolo_dir, 'launch', 'yolov8_3d.launch.py')
+    yolo3d_launch = os.path.join(yolo_dir, 'launch', 'yolo.launch.py')
     yolo3d = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(yolo3d_launch),
         launch_arguments={
             'namespace': ns,
             'model': model,
+            'use_3d': use_3d,
             'input_image_topic': input_image_topic,
             'input_depth_topic': input_depth_topic,
             'input_depth_info_topic': input_depth_info_topic,
@@ -138,6 +143,7 @@ def generate_launch_description():
     ld.add_action(target_frame_arg)
     ld.add_action(ns_arg)
     ld.add_action(debug_arg)
+    ld.add_action(use_3d_arg)
     ld.add_action(input_image_topic_arg)
     ld.add_action(input_depth_topic_arg)
     ld.add_action(input_depth_info_topic_arg)
