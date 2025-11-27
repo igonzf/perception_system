@@ -27,8 +27,8 @@ PeopleDetectionNode::PeopleDetectionNode(const rclcpp::NodeOptions & options)
   this->declare_parameter("debug", false);
   // Add the activation of the people detection node
   this->add_activation("yolo_node");
-  this->add_activation("yolo_detect_3d_node");
-  this->add_activation("yolo_tracking_node");
+  this->add_activation("detect_3d_node");
+  this->add_activation("tracking_node");
 }
 
 CallbackReturnT PeopleDetectionNode::on_configure(const rclcpp_lifecycle::State & state)
@@ -39,7 +39,7 @@ CallbackReturnT PeopleDetectionNode::on_configure(const rclcpp_lifecycle::State 
 
   this->get_parameter("target_frame", frame_id_);
   if (this->get_parameter("debug").as_bool()) {
-    this->add_activation("yolo_debug_node");
+    this->add_activation("debug_node");
   }
 
   pub_ = this->create_publisher<perception_system_interfaces::msg::DetectionArray>(
