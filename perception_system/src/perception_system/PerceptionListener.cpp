@@ -38,10 +38,10 @@ PerceptionListener::PerceptionListener(
   std::shared_ptr<rclcpp_cascade_lifecycle::CascadeLifecycleNode> parent_node)
 : parent_node_(parent_node)
 {
-  parent_node_->declare_parameter("max_time_perception", 0.01);
-  parent_node_->declare_parameter("max_time_interest", 0.01);
+  parent_node_->declare_parameter("max_time_perception", 0.1);
+  parent_node_->declare_parameter("max_time_interest", 0.1);
   parent_node_->declare_parameter("debug", false);
-  parent_node_->declare_parameter("tf_frame_camera", "head_front_camera_link_color_optical_frame");
+  parent_node_->declare_parameter("tf_frame_camera", "head_front_camera_color_optical_frame");
   parent_node_->declare_parameter("tf_frame_map", "base_footprint");
 
   parent_node_->get_parameter("max_time_perception", max_time_perception_);  
@@ -69,6 +69,12 @@ void PerceptionListener::perception_callback(
   perception_system_interfaces::msg::DetectionArray::UniquePtr msg)
 {
   last_msg_ = std::move(msg);
+  if (last_msg_ != nullptr) {
+    RCLCPP_INFO(parent_node_->get_logger(), "PerceptionListener callback: received %zu detections",
+      last_msg_->detections.size());
+  } else {
+    RCLCPP_DEBUG(parent_node_->get_logger(), "PerceptionListener callback: received null msg");
+  }
 
 }
 
@@ -87,12 +93,16 @@ void PerceptionListener::update(double hz)
   if (last_msg_ != nullptr) {
     for (auto & detection : last_msg_->detections) {
       // If it is in last_perceptions_ update, if not, create a new element in the vector
+      RCLCPP_INFO(parent_node_->get_logger(), "Processing detection with id: %s", detection.unique_id.c_str());
       auto det = perceptions_.find(detection.unique_id);
+      RCLCPP_INFO(parent_node_->get_logger(), "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Perception with id: %s %s", detection.unique_id.c_str(), (det != perceptions_.end()) ? "found" : "not found");
       if (det != perceptions_.end()) {
+        RCLCPP_INFO(parent_node_->get_logger(), "Updating perception with id: %s", detection.unique_id.c_str());
         det->second.msg = detection;
 
         det->second.time = rclcpp::Clock(RCL_STEADY_TIME).now();
       } else {
+        RCLCPP_INFO(parent_node_->get_logger(), "Adding new perception with id: %s", detection.unique_id.c_str());
         perceptions_.emplace(
           std::pair<std::string, PerceptionData>(
             detection.unique_id,
@@ -137,24 +147,31 @@ void PerceptionListener::update(double hz)
 // if status == false, remove to interests_ and call remove_activation
 void PerceptionListener::set_interest(const std::string & id, bool status)
 {
+  // RCLCPP_INFO(parent_node_->get_logger(), "Setting interest: %s, %d", id.c_str(), status);
   if (status) {
+    //RCLCPP_INFO(parent_node_->get_logger(), "Status true");
     if (interests_.find(id) == interests_.end()) {
+      //RCLCPP_INFO(parent_node_->get_logger(), "list of interests_ size: %zu", interests_.size());
+      //RCLCPP_INFO(parent_node_->get_logger(), "interest %s not found, adding", id.c_str());
       rclcpp::Clock steady_clock(RCL_STEADY_TIME);
       interests_.insert(
         std::pair<std::string, PerceptionInterest>(
           id,
           {status, steady_clock.now()}));
       if (id.find("person") != std::string::npos) {
+        //RCLCPP_INFO(parent_node_->get_logger(), "person interest added");
         parent_node_->add_activation("perception_people_detection");
       } else {
         parent_node_->add_activation("perception_objects_detection");
       }
-      RCLCPP_INFO(parent_node_->get_logger(), "Added interest: %s, %d", id.c_str(), status);
+      //RCLCPP_INFO(parent_node_->get_logger(), "Added interest: %s, %d", id.c_str(), status);
     } else {
+      //RCLCPP_INFO(parent_node_->get_logger(), "interest %s found", id.c_str());
       rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-      interests_.find(id)->second.time = steady_clock.now();
+      interests_.find(id)->second.time = steady_clock.now(); 
     }
   } else {
+    //RCLCPP_INFO(parent_node_->get_logger(), "Status false");
     interests_.erase(id);
     if (id.find("person") != std::string::npos) {
       parent_node_->remove_activation("perception_people_detection");
@@ -172,6 +189,7 @@ PerceptionListener::get_by_id(const std::string & id)
 {
   std::vector<perception_system_interfaces::msg::Detection> result;
   for (auto & perception : perceptions_) {
+    RCLCPP_INFO(parent_node_->get_logger(), "!!!!!!!!!!!!!!!!!!!!!!!!! Checking perception with id: %s", perception.first.c_str());
     if (perception.first == id) {
       result.push_back(perception.second.msg);
     }

@@ -45,6 +45,10 @@ CallbackReturnT PeopleDetectionNode::on_configure(const rclcpp_lifecycle::State 
   pub_ = this->create_publisher<perception_system_interfaces::msg::DetectionArray>(
     "all_perceptions", 10);
 
+  sub_ = this->create_subscription<yolo_msgs::msg::DetectionArray>(
+  "detections_3d", 10,
+  std::bind(&PeopleDetectionNode::callback, this, std::placeholders::_1));
+
   return CallbackReturnT::SUCCESS;
 }
 
@@ -54,10 +58,10 @@ CallbackReturnT PeopleDetectionNode::on_activate(const rclcpp_lifecycle::State &
     get_logger(), "[%s] Activating from [%s] state...", get_name(),
     state.label().c_str());
 
-  std::string topic_name = "detections_3d";
-  sub_ = this->create_subscription<yolo_msgs::msg::DetectionArray>(
-    topic_name, 10,
-    [this](yolo_msgs::msg::DetectionArray::ConstSharedPtr msg) {return this->callback(msg);});
+  // std::string topic_name = "detections_3d";
+  // sub_ = this->create_subscription<yolo_msgs::msg::DetectionArray>(
+  //   topic_name, 10,
+  //   [this](yolo_msgs::msg::DetectionArray::ConstSharedPtr msg) {return this->callback(msg);});
 
   pub_->on_activate();
 
@@ -70,7 +74,7 @@ CallbackReturnT PeopleDetectionNode::on_deactivate(const rclcpp_lifecycle::State
     get_logger(), "[%s] Deactivating from [%s] state...", get_name(),
     state.label().c_str());
 
-  sub_ = nullptr;
+  // sub_ = nullptr;
 
   pub_->on_deactivate();
 
@@ -83,6 +87,7 @@ CallbackReturnT PeopleDetectionNode::on_cleanup(const rclcpp_lifecycle::State & 
     get_logger(), "[%s] Cleaning up from [%s] state...", get_name(),
     state.label().c_str());
 
+  sub_.reset();
   pub_.reset();
 
   return CallbackReturnT::SUCCESS;
@@ -131,7 +136,7 @@ void PeopleDetectionNode::callback(
       perception.header.frame_id = frame_id_;
       perception.unique_id = id;
       perception.type = detection.class_name;
-      perception.class_id = stoi(detection.id);
+      // perception.class_id = stoi(detection.id);
       perception.class_name = detection.class_name;
       perception.score = detection.score;
       perception.center2d.x = detection.bbox.center.position.x;
