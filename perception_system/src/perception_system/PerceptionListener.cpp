@@ -93,16 +93,12 @@ void PerceptionListener::update(double hz)
   if (last_msg_ != nullptr) {
     for (auto & detection : last_msg_->detections) {
       // If it is in last_perceptions_ update, if not, create a new element in the vector
-      RCLCPP_INFO(parent_node_->get_logger(), "Processing detection with id: %s", detection.unique_id.c_str());
       auto det = perceptions_.find(detection.unique_id);
-      RCLCPP_INFO(parent_node_->get_logger(), "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Perception with id: %s %s", detection.unique_id.c_str(), (det != perceptions_.end()) ? "found" : "not found");
-      if (det != perceptions_.end()) {
-        RCLCPP_INFO(parent_node_->get_logger(), "Updating perception with id: %s", detection.unique_id.c_str());
+      if (det != perceptions_.end()) {  
         det->second.msg = detection;
 
         det->second.time = rclcpp::Clock(RCL_STEADY_TIME).now();
       } else {
-        RCLCPP_INFO(parent_node_->get_logger(), "Adding new perception with id: %s", detection.unique_id.c_str());
         perceptions_.emplace(
           std::pair<std::string, PerceptionData>(
             detection.unique_id,
@@ -189,7 +185,6 @@ PerceptionListener::get_by_id(const std::string & id)
 {
   std::vector<perception_system_interfaces::msg::Detection> result;
   for (auto & perception : perceptions_) {
-    RCLCPP_INFO(parent_node_->get_logger(), "!!!!!!!!!!!!!!!!!!!!!!!!! Checking perception with id: %s", perception.first.c_str());
     if (perception.first == id) {
       result.push_back(perception.second.msg);
     }
